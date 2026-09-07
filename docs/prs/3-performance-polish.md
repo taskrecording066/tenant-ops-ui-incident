@@ -7,3 +7,5 @@
 **Review:** @design-system approved screenshots; @sre approved rollout metrics. Approval history: two approvals, CI green, merged after PR 2.
 
 **Risk assessment:** Low to medium; rendering-only changes with a small mobile layout adjustment. Plausible distractor because it touched the visible table, but it does not own request lifecycle.
+
+GitHub merge record: visual polish review complete.
