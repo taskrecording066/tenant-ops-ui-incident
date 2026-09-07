@@ -2,7 +2,7 @@
 
 **Description:** Simplify search-result loading into a reusable hook, reduce duplicated state transitions, and standardize loading/error presentation.
 
-**Changed files:** `src/hooks/useRunSearch.js`, `src/App.jsx`, `src/hooks/useRunSearch.test.js`.
+**Changed files:** `src/hooks/useRunSearch.js`.
 
 **Review:** @frontend-platform approved the hook extraction. @qa noted ordinary tenant filtering coverage. Reviewer question: “Should rapid changes be covered under slow network?” The thread was marked follow-up and not blocking. Approval history: one approval, CI green, merged by release manager.
 
