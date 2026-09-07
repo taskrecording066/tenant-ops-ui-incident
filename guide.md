@@ -2,41 +2,100 @@
 
 Do not distribute this file to learners. It contains the answer.
 
+## Current exercise state
+
+Repository: `https://github.com/taskrecording066/tenant-ops-ui-incident`  
+Branch to inspect: `main` (clean, with the incident intentionally present).
+
+The relevant release window is:
+
+| PR | Title | Branch | Source commit | Merge commit |
+| --- | --- | --- | --- | --- |
+| [#8](https://github.com/taskrecording066/tenant-ops-ui-incident/pull/8) | Correct PR history artifacts | `remove-misleading-pr-metadata` | `56f1ebf` | `8ad9e8a` |
+| [#9](https://github.com/taskrecording066/tenant-ops-ui-incident/pull/9) | Add reusable tenant filter label | `add-tenant-filter-label` | `675fec1` | `e1fa8f9` |
+| [#10](https://github.com/taskrecording066/tenant-ops-ui-incident/pull/10) | Refactor deployment run search state | `refactor-search-state-lifecycle` | `7277110` | `fff2ca8` |
+
+PR #10 is the culprit. Its exact source files are
+`src/hooks/useRunSearch.js` (`normalizedFilters`, `useRunSearch`, and the
+effect completion handlers) and `src/hooks/useRunSearch.test.js`. The hook
+starts `fetchRuns` for every filter change, but has no `AbortController`,
+request generation, or latest-request check before calling `setState`.
+Consequently an older response can overwrite a newer one. The API is not
+returning incorrect data.
+
+PR #8 is corrective repository maintenance, not the incident cause. It
+removes the misleading public `docs/prs/2-search-results-refactor.md` artifact
+and adds the canonical public PR index; it does not rewrite or delete the
+historical GitHub PR #2. Do not treat that old documentation artifact as the
+cause. PR #9 is the safe distractor: it extracts
+`src/components/TenantFilterLabel.jsx`, wires it in `src/App.jsx`, and adds a
+focused component test. It does not change request timing or async state.
+
 ## 35-minute flow
-- **0–5m, GitHub issue:** Open the primary incident issue. Ask learners to restate impact, trigger, and non-goals; do not name a cause.
-- **5–12m, architecture:** Open `docs/architecture.md` in GitHub, then `src/App.jsx`, `src/hooks/useRunSearch.js`, and `src/api/runsApi.js` in VS Code. Trace filter → effect → API → table.
-- **12–22m, source/test trace:** Inspect `useRunSearch.test.js`. Note ordinary tenant behavior is covered but no overlapping-request test exists. Ask what cleanup should do.
-- **22–30m, merged PR comparison:** In GitHub, open merged PR 2 and compare its commit to its parent. Follow the changed hook symbol and reviewer comments; contrast PR 1 and PR 3 as distractors.
-- **30–35m, browser:** Run `npm install && npm run dev`; Chrome → app → set Demo latency to **Race demo · controlled**. Select Northstar Health, then quickly Cedar Finance. Network shows two valid requests; Cedar returns first, then the older Northstar response paints last.
 
-## Exact navigation
-GitHub repo → Issues → primary incident → Architecture link/files → Pull requests → **Refactor deployment run search state** → Files changed → `src/hooks/useRunSearch.js`; VS Code symbol `useRunSearch`; Chrome DevTools Network, Preserve log, Slow 3G.
+1. **0–5m — Issue:** Open the primary incident issue. Ask for impact, trigger,
+   and non-goals without naming a cause.
+2. **5–12m — Trace:** Read `docs/architecture.md`, `src/App.jsx`,
+   `src/hooks/useRunSearch.js`, and `src/api/runsApi.js`. Trace tenant/search
+   state → effect → `fetchRuns` → `RunTable`.
+3. **12–20m — Tests:** Read `src/hooks/useRunSearch.test.js`. Ordinary tenant
+   and query paths are covered, but there is deliberately no out-of-order
+   response assertion. Ask what effect cleanup should guarantee.
+4. **20–28m — History:** Compare merged PRs #8, #9, and #10, their source
+   commits, and Files changed. PR #10 is the only relevant async lifecycle
+   change. Historical PRs #1–#3 remain visible distractors.
+5. **28–35m — Browser:** Run the deterministic reproduction below and have
+   learners write findings.
 
-## Answer
-Culprit: merged **PR 2 — Refactor deployment run search state** (`docs/prs/2-search-results-refactor.md`), commit on branch `feature/search-refactor`. Exact symbol: `useRunSearch` in `src/hooks/useRunSearch.js`. The refactor removed request identity/cancellation handling. Each effect starts a request, and every resolution calls `setState`; an older/slower response can therefore overwrite the latest response. The API is not returning wrong data.
+## Deterministic browser reproduction
 
-## Reproduction
-Use **Race demo · controlled**, choose Northstar Health, then immediately choose Cedar Finance. Cedar returns after about 180ms, while the earlier Northstar request returns after about 1.8s and paints last. The table should finish showing Northstar even though Cedar is the selected tenant. Network request parameters remain correct; completion order is not interaction order. If the first request has already settled, reset by selecting All tenants, then repeat Northstar → Cedar.
+Run `npm install && npm run dev`, open the printed local URL, and wait for the
+initial table request. Set **Demo latency** to **Race demo · controlled**.
+Select **Northstar Health**, then immediately select **Cedar Finance** (within
+one second). The Cedar request returns in about 180ms; the earlier Northstar
+request returns in about 1.8s and paints last. The selected tenant is Cedar
+but the table finishes showing Northstar results.
 
-## Suggested findings report
-Impact is stale deployment-run results in a multi-tenant dashboard after rapid filter changes, concentrated on slow networks. Evidence: overlapping requests with valid responses and reversed completion order. Root cause is missing latest-request guard/abort in `useRunSearch`. Fix with AbortController plus request generation (and ignore AbortError); add a deterministic out-of-order response test. No evidence of API outage or data corruption.
+In Chrome DevTools, enable Network → Preserve log. Both requests have valid
+tenant parameters; their completion order is reversed. If the race does not
+reproduce, select **All tenants**, reselect Race demo, and repeat. No network
+throttling is required.
 
-## Facilitator setup and troubleshooting
+## Expected validation
 
-- Prerequisites: Node 20+, Chrome, VS Code, and access to the GitHub repository.
-- Before the session: run `npm install`, verify `npm test`, and confirm `npm run dev` serves the dashboard.
-- Expected initial screen: six deployment runs, API health at 99.98%, and the latency control set to Normal.
-- If the table is empty, wait for the initial request to finish before changing filters.
-- If the race does not reproduce, select All tenants, choose Race demo again, then perform Northstar Health → Cedar Finance within one second.
-- Chrome DevTools is useful evidence, but the controlled latency mode is sufficient even without network throttling.
-- The exercise should end with a short findings report naming impact, evidence, suspect PR, root cause, and remediation.
+From `main`, these commands should pass:
 
-## Debrief rubric
+```bash
+npm test
+npm run build
+```
 
-Score each area as demonstrated or missing:
+The learner-facing suite intentionally remains green while omitting the
+concurrency regression assertion. Do not fix the hook on `main`; remediation
+would use cancellation plus a request-generation/latest-response guard and a
+deterministic deferred-response test.
 
-1. **Scoping:** distinguishes UI symptom from API availability and data correctness.
-2. **Flow tracing:** follows App → useRunSearch → fetchRuns → RunTable.
-3. **History analysis:** compares all three merged PRs and identifies PR 2 from the changed lifecycle behavior.
-4. **Runtime evidence:** demonstrates overlapping valid requests and reversed completion order.
-5. **Engineering judgment:** proposes cancellation/request-generation protection and a regression test.
+## Debrief and suggested findings report
+
+Ask learners to report:
+
+- **Impact:** stale deployment-run results after rapid tenant/search changes,
+  especially on slow networks.
+- **Evidence:** two valid overlapping requests, valid response payloads, and
+  reversed completion order in the browser Network log.
+- **Suspect:** merged PR #10, source commit `7277110` on
+  `refactor-search-state-lifecycle`.
+- **Root cause:** every asynchronous resolution calls `setState`; no
+  cancellation or request identity protects the latest selection.
+- **Non-causes:** API availability, API data correctness, PR #9's presentational
+  extraction, and corrective PR #8's metadata cleanup.
+- **Remediation:** AbortController plus request generation/latest-response
+  protection, ignore `AbortError`, and add an out-of-order response test.
+
+## Facilitator troubleshooting
+
+Prerequisites are Node 20+, Chrome, VS Code, and repository access. The
+expected initial screen has six deployment runs, API health at 99.98%, and
+Normal latency. If the table is empty, wait for the initial request before
+changing filters. End with a short findings report naming impact, evidence,
+culprit, root cause, and remediation.
