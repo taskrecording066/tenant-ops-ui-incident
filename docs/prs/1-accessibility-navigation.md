@@ -7,3 +7,5 @@
 **Review:** Approved by @ops-design: “Good keyboard flow and no data behavior changes.” @release-manager requested a mobile smoke check, completed before merge.
 
 **Risk assessment:** Low; presentational and semantic changes only. Merged to main before the incident window.
+
+GitHub merge record: accessibility review complete.
