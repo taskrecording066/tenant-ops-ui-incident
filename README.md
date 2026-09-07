@@ -19,5 +19,9 @@ Open the printed localhost URL. Use **Demo latency** and change Tenant/Search qu
 - `src/fixtures` tenant and run data
 - `docs/` architecture, telemetry, runbook, issues, and PR descriptions
 
+The public PR index in `docs/prs/README.md` is the canonical exercise history. Older
+PRs may remain visible in GitHub as historical distractors; use the release-window
+entries in that index when tracing the incident.
+
 ## Validation
 `npm test` and `npm run build` are the main checks.
