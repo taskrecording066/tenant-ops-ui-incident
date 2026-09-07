@@ -1,2 +1,23 @@
-import {useEffect,useState} from 'react'; import {fetchRuns} from '../api/runsApi';
-export function useRunSearch(filters){const [state,setState]=useState({runs:[],loading:false,error:null}); useEffect(()=>{setState(s=>({...s,loading:true,error:null})); fetchRuns(filters).then(r=>setState({runs:r,loading:false,error:null})).catch(error=>{if(error.name!=='AbortError')setState(s=>({...s,loading:false,error}))});},[filters.tenant,filters.query,filters.latency]); return state;}
+import {useEffect,useState} from 'react';
+import {fetchRuns} from '../api/runsApi';
+
+function normalizedFilters(filters) {
+  return {...filters, query: filters.query.trim()};
+}
+
+export function useRunSearch(filters) {
+  const [state,setState] = useState({runs:[],loading:false,error:null});
+
+  useEffect(() => {
+    setState(current => ({...current,loading:true,error:null}));
+    fetchRuns(normalizedFilters(filters))
+      .then(runs => setState({runs,loading:false,error:null}))
+      .catch(error => {
+        if (error.name !== 'AbortError') {
+          setState(current => ({...current,loading:false,error}));
+        }
+      });
+  },[filters.tenant,filters.query,filters.latency]);
+
+  return state;
+}

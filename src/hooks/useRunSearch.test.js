@@ -1,3 +1,4 @@
 import {describe,it,expect,vi} from 'vitest'; import {renderHook,waitFor} from '@testing-library/react'; import {useRunSearch} from './useRunSearch';
 // Ordinary behavior is covered; concurrency behavior is intentionally absent from this exercise.
 describe('useRunSearch',()=>{it('loads runs for a tenant',async()=>{const {result}=renderHook(()=>useRunSearch({tenant:'Cedar Finance',query:'',latency:10}));await waitFor(()=>expect(result.current.loading).toBe(false));expect(result.current.runs.every(r=>r.tenant==='Cedar Finance')).toBe(true)})});
+describe('search normalization',()=>{it('ignores surrounding query whitespace',async()=>{const {result}=renderHook(()=>useRunSearch({tenant:'',query:'  api  ',latency:10}));await waitFor(()=>expect(result.current.loading).toBe(false));expect(result.current.runs.length).toBeGreaterThan(0)})});
