@@ -1,0 +1,2 @@
+import {runs} from '../fixtures/runs';
+export function fetchRuns({tenant='',query='',latency=700,signal}={}) { return new Promise((resolve,reject)=>{const timer=setTimeout(()=>{if(signal?.aborted)return; const q=query.toLowerCase(); resolve(runs.filter(r=>(!tenant||r.tenant===tenant)&&(!q||`${r.service} ${r.id} ${r.status}`.toLowerCase().includes(q))))},latency); signal?.addEventListener('abort',()=>{clearTimeout(timer); reject(new DOMException('Aborted','AbortError'))},{once:true});}); }
