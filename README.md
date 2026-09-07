@@ -17,8 +17,7 @@ Open the printed localhost URL. Use **Demo latency** and change Tenant/Search qu
 - `src/hooks` async view state
 - `src/api` simulated API client
 - `src/fixtures` tenant and run data
-- `docs/` public architecture, telemetry, runbook, issues, and PR descriptions
-- `guide.md` trainer-only exercise guide (do not share with learners)
+- `docs/` architecture, telemetry, runbook, issues, and PR descriptions
 
 ## Validation
 `npm test` and `npm run build` are the main checks.
